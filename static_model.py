@@ -101,7 +101,39 @@ class NeuralNet(nn.Module):
         return x
 
 
+class ConvNet(torch.nn.Module):
+    """
+    Another flavour of data, actually works worse,
+    just for the sake of getting to know another declaration flavour
+    """
+    def __init__(self):
+        super(ConvNet, self).__init__()
+
+        self.conv = torch.nn.Sequential()
+        self.conv.add_module("conv_1", torch.nn.Conv2d(3, 10, kernel_size=5))
+        self.conv.add_module("maxpool_1", torch.nn.MaxPool2d(kernel_size=2))
+        self.conv.add_module("relu_1", torch.nn.ReLU())
+        self.conv.add_module("conv_2", torch.nn.Conv2d(10, 20, kernel_size=5))
+        # self.conv.add_module("dropout_2", torch.nn.Dropout())
+        self.conv.add_module("maxpool_2", torch.nn.MaxPool2d(kernel_size=2))
+        self.conv.add_module("relu_2", torch.nn.ReLU())
+
+        self.fc = torch.nn.Sequential()
+        self.fc.add_module("fc1", torch.nn.Linear(3960, 50))
+        self.fc.add_module("relu_3", torch.nn.ReLU())
+        # self.fc.add_module("dropout_3", torch.nn.Dropout())
+        self.fc.add_module("fc2", torch.nn.Linear(50, 2))
+
+    def forward(self, x):
+        x = self.conv.forward(x)
+        print x.size()
+        x = x.view(-1, 3960)
+        return self.fc.forward(x)
+
+
+
 net = NeuralNet()
+# net = ConvNet()
 if use_cuda:
     net.cuda()
 criterion = nn.MSELoss()
