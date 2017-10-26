@@ -7,17 +7,24 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.autograd import Variable
 
-WIDTH = 320
-HEIGHT = 240
+WIDTH = 100
+HEIGHT = 50
 
 IMG_SIZE = (WIDTH, HEIGHT, 3)
 
 COLOR = (7, 7, 155)
-R = 21
-BATCH_SIZE = 16
+R = 5
+BATCH_SIZE = 64
 
 use_cuda = torch.cuda.is_available()
+if use_cuda:
+    print "Cuda is available"
+else:
+    print "Cuda is not available"
 FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
+FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
+LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
+ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
 Tensor = FloatTensor
 
 
@@ -40,7 +47,7 @@ def generate_sample():
     img = img.permute(2, 1, 0).unsqueeze(0)
     x = Variable(img).type(Tensor)
 
-    y = Variable(FloatTensor([[center_x, center_y]]))
+    y = Variable(Tensor([[center_x, center_y]]))
 
     return x, y
 
@@ -55,8 +62,8 @@ def generate_batch():
         xs.append(x)
         ys.append(y)
 
-    x_batch = torch.cat(xs)
-    y_batch = torch.cat(ys)
+    x_batch = torch.cat(xs).cuda()
+    y_batch = torch.cat(ys).cuda()
 
     return x_batch, y_batch
 
@@ -77,9 +84,9 @@ class NeuralNet(nn.Module):
 
         self.conv3 = nn.Conv2d(32, 32, 3)
         self.bn3 = nn.BatchNorm2d(32)
+        
 
-        # self.fc1 = nn.Linear(32 * 3 * 3, 64)
-        self.fc1 = nn.Linear(2351232, 64)
+        self.fc1 = nn.Linear(132352, 64)
         self.fc2 = nn.Linear(64, 16)
         self.fc3 = nn.Linear(16, 2)
 
@@ -87,7 +94,7 @@ class NeuralNet(nn.Module):
         x = F.relu(self.bn1(self.conv1(x)))
         x = F.relu(self.bn2(self.conv2(x)))
         x = F.relu(self.bn3(self.conv3(x)))
-        x = x.view(x.size(0), -1)
+        x = x.view(-1, 132352)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -95,6 +102,8 @@ class NeuralNet(nn.Module):
 
 
 net = NeuralNet()
+if use_cuda:
+    net.cuda()
 criterion = nn.MSELoss()
 optimizer = optim.Adam(net.parameters())
 
@@ -113,10 +122,9 @@ while True:
     loss.backward()
     optimizer.step()
 
-    print 80 * "="
-    print "Epoch {}".format(epoch)
-    print "Finished forward pass"
-    print "computed loss = {}".format(loss)
-    print "Predicted y_hat = {} actual y = {}".format(y_hat[0], ys[0])
-    print "Finished optimization"
+    print (
+            "Epoch {} ".format(epoch) +
+            "loss = {} ".format(loss.cpu().data.numpy()) + 
+            "y_hat = {} actual y = {}".format(y_hat[0].cpu().data.numpy(), ys[0].cpu().data.numpy())
+    )
 
