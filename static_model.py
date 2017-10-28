@@ -1,6 +1,8 @@
 import cv2
+import matplotlib.pyplot as plt
 
 import numpy as np
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -21,7 +23,6 @@ if use_cuda:
     print "Cuda is available"
 else:
     print "Cuda is not available"
-FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
 LongTensor = torch.cuda.LongTensor if use_cuda else torch.LongTensor
 ByteTensor = torch.cuda.ByteTensor if use_cuda else torch.ByteTensor
@@ -153,6 +154,15 @@ while True:
     loss = criterion(y_hat, ys)
     loss.backward()
     optimizer.step()
+
+    if epoch % 50 == 1:
+        perhaps_img = xs[0].cpu().data.numpy().transpose((2, 1, 0)).astype(np.uint8)
+        x, y = y_hat[0].cpu().data.numpy()
+        yy, xx = np.meshgrid(range(HEIGHT), range(WIDTH))
+        selector = (yy - y) ** 2 + (xx - x) ** 2 < 2 ** 2
+        perhaps_img[selector] = (255, 0, 0)
+        plt.imshow(perhaps_img)
+        plt.show()
 
     print (
             "Epoch {} ".format(epoch) +
