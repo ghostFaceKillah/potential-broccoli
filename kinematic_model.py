@@ -2,16 +2,18 @@
 In this file I check if neural network is able to learn a kinematic model.
 """
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+
+import ipdb
 import numpy as np
 import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-from torch.autograd import Variable
-
 import random
+
+from torch.autograd import Variable
 
 
 def normalize(x):
@@ -132,23 +134,27 @@ class NeuralNet(nn.Module):
         super(NeuralNet, self).__init__()
         self.fc1 = nn.Linear(IN_SIZE, 10)
         self.fc2 = nn.Linear(10, 64)
-        self.fc3 = nn.Linear(64, 20)
-        self.fc4 = nn.Linear(20, OUT_SIZE)
+        self.fc3 = nn.Linear(64, 64)
+        self.fc4 = nn.Linear(64, 64)
+        self.fc5 = nn.Linear(64, OUT_SIZE)
 
     def forward(self, x):
-        x = F.elu(self.fc1(x))
-        x = F.elu(self.fc2(x))
-        x = F.elu(self.fc3(x))
-        x = self.fc4(x)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = self.fc5(x)
         return x
 
 BATCH_SIZE = 128
-NUM_EPOCHS = 1000
+NUM_EPOCHS = 5000
 if __name__ == '__main__':
     use_cuda = torch.cuda.is_available()
     FloatTensor = torch.cuda.FloatTensor if use_cuda else torch.FloatTensor
     # visualize_model()
+    print "gathering data"
     data = gather_data()
+    print "done."
     model = NeuralNet()
     if use_cuda:
         model = model.cuda()
@@ -156,10 +162,8 @@ if __name__ == '__main__':
     opt = optim.Adam(model.parameters())
 
     # do the training
-    # for i in range(NUM_EPOCHS):
-    i = 0
-    while True:
-        i += 1
+    for i in range(NUM_EPOCHS):
+        opt.zero_grad()
         sample = random.sample(data, BATCH_SIZE)
         X, y = zip(*sample)
         X, y = map(FloatTensor, (X, y))
@@ -169,8 +173,4 @@ if __name__ == '__main__':
         loss.backward()
         print("Epoch:\t{}\tLoss:\t{}".format(i, loss.data.cpu()[0]))
 
-        # print("#" * 30)
-        # print("Epoch:\t{}\nLoss:\t{}".format(i, loss.data.cpu()[0]))
-        # print("#" * 30)
-        # print()
         opt.step()
