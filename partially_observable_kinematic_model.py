@@ -80,7 +80,7 @@ class KinematicModel(object):
             else:
                 break
 
-    def gather_run(self, how_much=256):
+    def gather_run(self, how_much=8):
         xs = [self.x.copy()]
 
         for i in xrange(how_much + 1):
@@ -146,7 +146,7 @@ class NeuralNet(nn.Module):
         return out, new_hidden
 
     def init_hidden(self):
-        return Variable(torch.zeros(HIDDEN_SIZE))
+        return Variable(torch.zeros(HIDDEN_SIZE).cuda())
 
 
 if __name__ == '__main__':
@@ -178,16 +178,24 @@ if __name__ == '__main__':
         v = np.random.rand(2)
 
         kin_model = KinematicModel(sp, v)
-        trajectory = kin_model.gather_run()
+        if i < 5000:
+            trajectory = kin_model.gather_run(how_much=4)
+        elif i < 10000:
+            trajectory = kin_model.gather_run(how_much=8)
+        elif i < 20000:
+            trajectory = kin_model.gather_run(how_much=16)
+        else:
+            trajectory = kin_model.gather_run(how_much=1024)
         hidden = model.init_hidden()
 
         loss = 0
         for x, y in trajectory:
-            x, y = Variable(FloatTensor(x)), Variable(FloatTensor(y))
+            x, y = Variable(FloatTensor(x).cuda()), Variable(FloatTensor(y).cuda())
             y_hat, hidden = model(x, hidden)
             loss += criterion(y_hat, y)
 
         loss.backward()
         opt.step()
 
-        print("Epoch:\t{}\tLoss:\t{}".format(i, loss.data.cpu()[0]))
+        if i % 100 == 0:
+            print("Epoch:\t{}\tLoss:\t{}".format(i, loss.data.cpu()[0]))
